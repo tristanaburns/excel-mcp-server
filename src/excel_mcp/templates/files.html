@@ -17,15 +17,15 @@
 </div>
 {% endif %}
 
-<div class="card shadow-sm overflow-visible">
+<div class="card shadow-sm">
     <div class="card-header bg-white py-3">
         <h5 class="mb-0">Available Files</h5>
     </div>
-    <div class="card-body position-relative overflow-visible">
+    <div class="card-body position-relative">
         {% if files %}
-        <div class="files-container overflow-auto position-relative">
-            <div class="table-responsive overflow-visible">
-                <table class="table table-hover table-files position-relative">
+        <div class="files-container">
+            <div class="table-responsive">
+                <table class="table table-hover table-files">
                     <thead>
                         <tr>
                             <th style="width: 40%">File Name</th>
@@ -40,25 +40,20 @@
                             <td>{{ file.name }}</td>
                             <td>{{ file.size_formatted }}</td>
                             <td>{{ file.modified }}</td>
-                            <td class="dropdown-cell">
-                                <div class="dropdown-wrapper d-flex flex-wrap" style="min-height: 38px">
-                                    <a href="/download/{{ file.name }}" class="btn btn-sm btn-outline-primary me-1 mb-1">Download</a>
-                                    <button type="button" class="btn btn-sm btn-outline-info me-1 mb-1"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#infoModal"
-                                            data-filename="{{ file.name }}">Info</button>
-                                    <div class="dropdown dropdown-container me-1 mb-1">
-                                        <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle w-100" data-bs-toggle="dropdown" aria-expanded="false">
+                            <td class="dropdown-cell position-relative"><div class="btn-group dropdown-wrapper" role="group">                                    <a href="/download/{{ file.name }}" class="btn btn-sm btn-outline-primary">Download</a>
+                                    <a href="/api/info/{{ file.name }}" class="btn btn-sm btn-outline-info">Info</a>
+                                    <div class="btn-group dropdown-container">
+                                        <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                                             CSV
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end">
-                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#csvImportModal" data-filename="{{ file.name }}">Import CSV</a></li>
-                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#csvExportModal" data-filename="{{ file.name }}">Export to CSV</a></li>
-                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCsvImportModal" data-filename="{{ file.name }}">Bulk CSV Import</a></li>
-                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCsvExportModal" data-filename="{{ file.name }}">Bulk CSV Export</a></li>
+                                            <li><a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#csvImportModal" data-filename="{{ file.name }}">Import CSV</a></li>
+                                            <li><a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#csvExportModal" data-filename="{{ file.name }}">Export to CSV</a></li>
+                                            <li><a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#bulkCsvImportModal" data-filename="{{ file.name }}">Bulk CSV Import</a></li>
+                                            <li><a class="dropdown-item py-2" href="#" data-bs-toggle="modal" data-bs-target="#bulkCsvExportModal" data-filename="{{ file.name }}">Bulk CSV Export</a></li>
                                         </ul>
                                     </div>
-                                    <button class="btn btn-sm btn-outline-danger delete-btn me-1 mb-1" 
+                                    <button class="btn btn-sm btn-outline-danger delete-btn" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#deleteModal" 
                                             data-filename="{{ file.name }}">Delete</button>
@@ -83,21 +78,20 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Upload Excel Files</h5>
+                <h5 class="modal-title">Upload Excel File</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
                     <div class="mb-3">
-                        <label for="excelFile" class="form-label">Select Excel Files</label>
-                        <input class="form-control" type="file" id="excelFile" name="files" accept=".xlsx,.xls" multiple>
-                        <div class="form-text">Only .xlsx and .xls files are supported. You can select multiple files.</div>
+                        <label for="excelFile" class="form-label">Select Excel File</label>
+                        <input class="form-control" type="file" id="excelFile" name="file" accept=".xlsx,.xls">
+                        <div class="form-text">Only .xlsx and .xls files are supported.</div>
                     </div>
                 </form>
                 <div class="progress d-none" id="uploadProgress">
                     <div class="progress-bar" role="progressbar" style="width: 0%"></div>
                 </div>
-                <div id="uploadStatus" class="mt-3"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -121,61 +115,6 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <a href="#" id="confirmDelete" class="btn btn-danger">Delete</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- File Info Modal -->
-<div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">File Information</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="text-center" id="infoLoading">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p>Loading file information...</p>
-                </div>
-                <div id="infoContent" class="d-none">
-                    <h6 class="border-bottom pb-2 mb-3">General Information</h6>
-                    <div class="row mb-3">
-                        <div class="col-md-3 fw-bold">File Name:</div>
-                        <div class="col-md-9" id="info-filename"></div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-3 fw-bold">Size:</div>
-                        <div class="col-md-9" id="info-size"></div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-3 fw-bold">Last Modified:</div>
-                        <div class="col-md-9" id="info-modified"></div>
-                    </div>
-                    
-                    <h6 class="border-bottom pb-2 mb-3 mt-4">Excel Details</h6>
-                    <div class="row mb-3">
-                        <div class="col-md-3 fw-bold">Sheets:</div>
-                        <div class="col-md-9" id="info-sheets"></div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-3 fw-bold">Active Sheet:</div>
-                        <div class="col-md-9" id="info-active-sheet"></div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-3 fw-bold">Properties:</div>
-                        <div class="col-md-9" id="info-properties"></div>
-                    </div>
-                </div>
-                <div class="alert alert-danger d-none" id="infoError">
-                    Failed to load file information. Please try again.
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -356,75 +295,14 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Setup delete confirmation dialog
+        // Setup delete confirmation modal
         const deleteModal = document.getElementById('deleteModal');
         if (deleteModal) {
             deleteModal.addEventListener('show.bs.modal', function (event) {
                 const button = event.relatedTarget;
                 const filename = button.getAttribute('data-filename');
                 document.getElementById('deleteFilename').textContent = filename;
-                document.getElementById('confirmDelete').href = `/delete/${filename}`;
-            });
-        }
-        
-        // Setup Info modal
-        const infoModal = document.getElementById('infoModal');
-        if (infoModal) {
-            infoModal.addEventListener('show.bs.modal', function (event) {
-                const button = event.relatedTarget;
-                const filename = button.getAttribute('data-filename');
-                
-                // Show loading spinner and hide content/error
-                document.getElementById('infoLoading').classList.remove('d-none');
-                document.getElementById('infoContent').classList.add('d-none');
-                document.getElementById('infoError').classList.add('d-none');
-                
-                // Fetch file information
-                fetch(`/api/info/${encodeURIComponent(filename)}`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        // Hide loading spinner and show content
-                        document.getElementById('infoLoading').classList.add('d-none');
-                        document.getElementById('infoContent').classList.remove('d-none');
-                        
-                        // Populate file information
-                        document.getElementById('info-filename').textContent = data.name;
-                        document.getElementById('info-size').textContent = data.size_formatted;
-                        document.getElementById('info-modified').textContent = data.modified;
-                        
-                        // Excel-specific details
-                        document.getElementById('info-sheets').textContent = data.sheets.join(', ');
-                        document.getElementById('info-active-sheet').textContent = data.active_sheet || 'None';
-                        
-                        // Properties
-                        const propertiesElement = document.getElementById('info-properties');
-                        if (Object.keys(data.properties).length > 0) {
-                            const propList = document.createElement('ul');
-                            propList.className = 'list-unstyled mb-0';
-                            
-                            for (const [key, value] of Object.entries(data.properties)) {
-                                const item = document.createElement('li');
-                                item.innerHTML = `<strong>${key}:</strong> ${value || 'N/A'}`;
-                                propList.appendChild(item);
-                            }
-                            
-                            propertiesElement.innerHTML = '';
-                            propertiesElement.appendChild(propList);
-                        } else {
-                            propertiesElement.textContent = 'No properties found';
-                        }
-                    })
-                    .catch(error => {
-                        // Hide loading spinner and show error
-                        document.getElementById('infoLoading').classList.add('d-none');
-                        document.getElementById('infoError').classList.remove('d-none');
-                        document.getElementById('infoError').textContent = `Failed to load file information: ${error.message}`;
-                    });
+                document.getElementById('confirmDelete').href = '/delete/' + encodeURIComponent(filename);
             });
         }
 
@@ -433,11 +311,12 @@
         const uploadForm = document.getElementById('uploadForm');
         const progressBar = document.querySelector('#uploadProgress .progress-bar');
         const progressContainer = document.getElementById('uploadProgress');
-          if (uploadBtn && uploadForm) {
+        
+        if (uploadBtn && uploadForm) {
             uploadBtn.addEventListener('click', function() {
                 const fileInput = document.getElementById('excelFile');
                 if (fileInput.files.length === 0) {
-                    alert('Please select one or more files to upload.');
+                    alert('Please select a file to upload.');
                     return;
                 }
                 
@@ -457,53 +336,7 @@
                 
                 xhr.onload = function() {
                     if (xhr.status === 200) {
-                        try {
-                            const response = JSON.parse(xhr.responseText);
-                            
-                            // Check if this is a multi-file upload response
-                            if (response.hasOwnProperty('total') && response.hasOwnProperty('results')) {
-                                // Show upload status
-                                const statusEl = document.getElementById('uploadStatus');
-                                statusEl.innerHTML = `
-                                    <div class="alert alert-${response.success ? 'success' : 'warning'}">
-                                        <h5>Upload Complete</h5>
-                                        <p>Successfully uploaded ${response.successful} of ${response.total} files.</p>
-                                    </div>`;
-                                
-                                // Show details if there were failures
-                                if (response.failed > 0) {
-                                    const failureList = document.createElement('ul');
-                                    failureList.className = 'list-group mt-3';
-                                    
-                                    response.results.forEach(result => {
-                                        if (!result.success) {
-                                            const item = document.createElement('li');
-                                            item.className = 'list-group-item list-group-item-danger';
-                                            item.textContent = `${result.filename}: ${result.error}`;
-                                            failureList.appendChild(item);
-                                        }
-                                    });
-                                    
-                                    statusEl.appendChild(failureList);
-                                }
-                                
-                                // Add a refresh button
-                                const refreshBtn = document.createElement('button');
-                                refreshBtn.className = 'btn btn-primary mt-3';
-                                refreshBtn.textContent = 'Refresh File List';
-                                refreshBtn.onclick = function() { window.location.href = '/files'; };
-                                statusEl.appendChild(refreshBtn);
-                                
-                                // Hide progress bar
-                                progressContainer.classList.add('d-none');
-                            } else {
-                                // For single file upload or backward compatibility
-                                window.location.href = '/files';
-                            }
-                        } catch (e) {
-                            // If response is not valid JSON, just redirect
-                            window.location.href = '/files';
-                        }
+                        window.location.href = '/files';
                     } else {
                         alert('Upload failed. Please try again.');
                         progressContainer.classList.add('d-none');

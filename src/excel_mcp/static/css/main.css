@@ -68,7 +68,7 @@ main {
 .card-body {
     flex: 1;
     overflow: visible !important; /* Critical for dropdown visibility */
-    padding-bottom: 60px; /* Extra padding at bottom */
+    padding-bottom: 40px; /* Extra padding at bottom */
     position: relative; /* For dropdown positioning */
 }
 
@@ -99,7 +99,7 @@ main {
 /* Specific table styles */
 .table-files {
     position: relative;
-    margin-bottom: 80px; /* Space for dropdowns */
+    margin-bottom: 60px; /* Space for dropdowns */
 }
 
 .table-files thead {
@@ -119,7 +119,7 @@ main {
 
 .file-row {
     height: auto;
-    min-height: 60px; /* Minimum height for rows */
+    min-height: 50px; /* Minimum height for rows */
     position: relative;
 }
 
@@ -127,28 +127,26 @@ main {
     background-color: rgba(0, 123, 255, 0.05);
 }
 
-/* Enhanced dropdown cell styling */
 .dropdown-cell {
     position: relative !important; /* Position context for dropdowns */
     min-width: 250px; /* Ensure enough space for buttons */
-    padding-bottom: 40px !important; /* Add padding below dropdown cell */
 }
 
 .dropdown-cell .btn {
     margin-right: 2px;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
-/* Enhanced dropdown menu styling */
+/* Fix dropdown cutoff issue */
 .dropdown-menu {
     position: absolute !important;
-    z-index: 1200 !important; /* Very high z-index for visibility */
+    z-index: 1025 !important; /* Higher z-index for visibility */
     width: auto;
     min-width: 200px;
     max-width: 250px; /* Control max width of dropdown menus */
     margin-top: 0 !important; /* Remove default margin */
     border: 1px solid rgba(0,0,0,.15);
-    box-shadow: 0 8px 16px rgba(0,0,0,.25);
+    box-shadow: 0 6px 12px rgba(0,0,0,.175);
     right: 0 !important; /* Always align to the right */
     left: auto !important; /* Override Bootstrap's left positioning */
     max-height: 400px; /* Limit the height if many items */
@@ -160,23 +158,15 @@ main {
     visibility: visible !important;
     opacity: 1 !important;
     transform: none !important;
-    z-index: 1200 !important;
+    z-index: 1050 !important;
     margin-top: 2px !important;
 }
 
-/* Ensure dropdown items display properly */
-.dropdown-item {
-    padding: 8px 16px;
-    white-space: normal; /* Allow wrapping */
-    word-break: break-word;
-}
-
-/* Enhanced dropdown wrapper and container styling */
+/* Specific styling for dropdown containers */
 .dropdown-wrapper {
     position: relative !important;
     display: inline-flex !important;
     flex-wrap: wrap;
-    margin-bottom: 8px; /* Add margin below buttons */
 }
 
 .dropdown-container {
@@ -188,8 +178,6 @@ main {
 .btn-group {
     position: relative !important;
     display: inline-flex !important;
-    flex-wrap: wrap;
-    margin-bottom: 5px;
 }
 
 /* Ensure there's space for the dropdown */
@@ -210,6 +198,12 @@ main {
     left: auto !important;
 }
 
+/* Ensure dropdowns have space to display */
+.btn-group {
+    margin-bottom: 5px;
+    position: relative;
+}
+
 /* Adjustments for different screen sizes */
 @media (max-width: 1200px) {
     /* Ensure dropdowns stay within screen */
@@ -219,7 +213,7 @@ main {
 }
 
 @media (max-width: 992px) {
-    .container-fluid {
+    .container {
         padding-left: 15px;
         padding-right: 15px;
     }
@@ -232,7 +226,7 @@ main {
 
 @media (max-width: 768px) {
     /* For tablets */
-    .container-fluid {
+    .container {
         padding-left: 10px;
         padding-right: 10px;
     }
@@ -240,6 +234,12 @@ main {
     /* Ensure table scrolls horizontally on smaller screens */
     .table-responsive {
         overflow-x: auto;
+    }
+    
+    /* Adjust card height for mobile */
+    .card {
+        min-height: calc(100vh - 140px);
+        height: calc(100vh - 140px);
     }
     
     /* Make file rows taller for touch screens */
@@ -274,7 +274,7 @@ main {
 }
 
 @media (max-width: 576px) {
-    .container-fluid {
+    .container {
         padding-left: 5px;
         padding-right: 5px;
     }
@@ -302,6 +302,10 @@ main {
         margin-bottom: 2px;
         border-radius: 4px !important;
     }
+}
+
+.btn-group .btn {
+    margin-right: 2px;
 }
 
 .table th, .table td {

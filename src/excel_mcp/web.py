@@ -92,62 +92,27 @@ async def file_manager(request: Request, message: Optional[str] = None, message_
     )
 
 @app.post("/upload")
-async def upload_file(files: List[UploadFile] = File(...)):
-    """Upload Excel files. Supports both single and multiple file uploads.
+async def upload_file(file: UploadFile = File(...)):
+    """Upload an Excel file."""
+    # Validate file extension
+    if not file.filename.lower().endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="Only Excel files (.xlsx, .xls) are allowed")
     
-    For multiple file uploads, the frontend sends multiple 'files' parameters.
-    """
-    results = []
+    # Save the file
+    file_path = Path(EXCEL_FILES_PATH) / file.filename
     
-    # Handle one or more files
-    for file in files:
-        # Validate file extension
-        if not file.filename.lower().endswith(('.xlsx', '.xls')):
-            results.append({
-                "filename": file.filename,
-                "success": False,
-                "error": "Only Excel files (.xlsx, .xls) are allowed"
-            })
-            continue
+    try:
+        # Create the directory if it doesn't exist
+        os.makedirs(EXCEL_FILES_PATH, exist_ok=True)
         
-        # Save the file
-        file_path = Path(EXCEL_FILES_PATH) / file.filename
-        
-        try:
-            # Create the directory if it doesn't exist
-            os.makedirs(EXCEL_FILES_PATH, exist_ok=True)
+        # Write the file
+        with open(file_path, "wb") as buffer:
+            contents = await file.read()
+            buffer.write(contents)
             
-            # Write the file
-            with open(file_path, "wb") as buffer:
-                contents = await file.read()
-                buffer.write(contents)
-                
-            results.append({
-                "filename": file.filename, 
-                "size": len(contents), 
-                "success": True
-            })
-        except Exception as e:
-            results.append({
-                "filename": file.filename,
-                "success": False,
-                "error": str(e)
-            })
-    
-    # If only one file was uploaded, return its result directly for backward compatibility
-    if len(results) == 1:
-        if not results[0]["success"]:
-            raise HTTPException(status_code=400, detail=results[0]["error"])
-        return results[0]
-    
-    # Return summary for multiple files
-    return {
-        "success": any(r["success"] for r in results),
-        "total": len(results),
-        "successful": sum(1 for r in results if r["success"]),
-        "failed": sum(1 for r in results if not r["success"]),
-        "results": results
-    }
+        return {"filename": file.filename, "size": len(contents)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
 
 @app.get("/download/{filename}")
 async def download_file(filename: str):
@@ -317,50 +282,10 @@ async def api_bulk_export_csv(filename: str, request: BulkCsvExportRequest):
             excel_filename=filename,
             worksheet_list=worksheet_list
         )
+        
         if not result.get("success", False):
             raise HTTPException(status_code=400, detail=result.get("message", "Bulk CSV export failed"))
             
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in bulk CSV export: {str(e)}")
-
-@app.get("/api/info/{filename}")
-async def get_file_info(filename: str):
-    """API endpoint to retrieve file information for the info modal."""
-    file_path = Path(EXCEL_FILES_PATH) / filename
-    
-    try:
-        # Get basic file stats
-        file_stats = file_path.stat()
-        
-        # Format the file size
-        size_formatted = format_size(file_stats.st_size)
-        
-        # Format dates
-        modified_time = datetime.fromtimestamp(file_stats.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
-        created_time = datetime.fromtimestamp(file_stats.st_ctime).strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Get workbook details using the existing function
-        workbook_info = {}
-        try:
-            workbook_info = get_info_impl(str(file_path))
-        except Exception as e:
-            # If we can't get workbook details, we'll still return the basic file info
-            workbook_info = {"error": str(e)}
-            
-        # Combine all info
-        file_info = {
-            "name": filename,
-            "size": file_stats.st_size,
-            "size_formatted": size_formatted,
-            "modified": modified_time,
-            "created": created_time,
-            "sheets": workbook_info.get("sheets", []),
-            "active_sheet": workbook_info.get("active_sheet", ""),
-            "properties": workbook_info.get("properties", {}),
-        }
-              return file_info
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail=f"File '{filename}' not found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving file info: {str(e)}")
