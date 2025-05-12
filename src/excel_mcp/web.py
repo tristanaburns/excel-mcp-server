@@ -359,13 +359,8 @@ async def get_file_info(filename: str):
             "active_sheet": workbook_info.get("active_sheet", ""),
             "properties": workbook_info.get("properties", {}),
         }
-            
-        return file_info
+              return file_info
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"File '{filename}' not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving file info: {str(e)}")
-            
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error in bulk CSV export: {str(e)}")
