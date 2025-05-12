@@ -1,0 +1,328 @@
+/* Main CSS file for Excel MCP Server */
+
+html, body {
+    height: 100%; 
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100%;
+    overflow-x: hidden; /* Allow vertical scrolling if needed */
+    position: relative;
+}
+
+.container-fluid {
+    width: 100%;
+    position: relative;
+    overflow: visible !important; /* Critical for dropdown visibility */
+}
+
+/* Ensure content has room to breathe */
+h1, h2, h3 {
+    margin-bottom: 1.5rem;
+}
+
+/* Navigation and footer */
+header {
+    position: relative;
+    z-index: 1030; /* Higher than dropdowns */
+}
+
+nav.navbar {
+    height: auto;
+    min-height: 56px;
+}
+
+footer {
+    height: auto;
+    min-height: 40px;
+    position: relative;
+    z-index: 1030; /* Ensure footer stays above content */
+}
+
+main {
+    padding-bottom: 60px; /* Space for dropdowns at the bottom */
+    overflow: visible !important; /* Critical for dropdown visibility */
+}
+
+.jumbotron {
+    border-radius: 0.3rem;
+}
+
+/* Card styling */
+.card {
+    transition: box-shadow 0.3s ease;
+    margin-bottom: 20px; /* Add some space at the bottom */
+    min-height: 400px; /* Minimum height */
+    height: auto; /* Let it grow naturally */
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    border-radius: 8px;
+    overflow: visible !important; /* Critical for dropdown visibility */
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-body {
+    flex: 1;
+    overflow: visible !important; /* Critical for dropdown visibility */
+    padding-bottom: 60px; /* Extra padding at bottom */
+    position: relative; /* For dropdown positioning */
+}
+
+.card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Excel files table container with scroll */
+.files-container {
+    width: 100%;
+    overflow: visible !important; /* Critical for dropdown visibility */
+    height: auto;
+    min-height: 300px;
+    max-height: calc(100vh - 200px); /* Responsive height */
+    scrollbar-width: thin;
+    position: relative; /* Establish positioning context */
+    margin-bottom: 80px; /* Space for dropdowns */
+}
+
+/* Make table responsive */
+.table-responsive {
+    overflow: visible !important; /* Critical for dropdown visibility */
+    position: relative; /* Ensure positioning context */
+    border: none;
+    margin-bottom: 0;
+}
+
+/* Specific table styles */
+.table-files {
+    position: relative;
+    margin-bottom: 80px; /* Space for dropdowns */
+}
+
+.table-files thead {
+    position: sticky;
+    top: 0;
+    z-index: 1020; /* Below navbar but above content */
+    background-color: white;
+}
+
+.table-files thead th {
+    background-color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.file-row {
+    height: auto;
+    min-height: 60px; /* Minimum height for rows */
+    position: relative;
+}
+
+.file-row:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+/* Enhanced dropdown cell styling */
+.dropdown-cell {
+    position: relative !important; /* Position context for dropdowns */
+    min-width: 250px; /* Ensure enough space for buttons */
+    padding-bottom: 40px !important; /* Add padding below dropdown cell */
+}
+
+.dropdown-cell .btn {
+    margin-right: 2px;
+    margin-bottom: 4px;
+}
+
+/* Enhanced dropdown menu styling */
+.dropdown-menu {
+    position: absolute !important;
+    z-index: 1200 !important; /* Very high z-index for visibility */
+    width: auto;
+    min-width: 200px;
+    max-width: 250px; /* Control max width of dropdown menus */
+    margin-top: 0 !important; /* Remove default margin */
+    border: 1px solid rgba(0,0,0,.15);
+    box-shadow: 0 8px 16px rgba(0,0,0,.25);
+    right: 0 !important; /* Always align to the right */
+    left: auto !important; /* Override Bootstrap's left positioning */
+    max-height: 400px; /* Limit the height if many items */
+    overflow-y: auto; /* Add scrolling if needed */
+}
+
+.dropdown-menu.show {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    z-index: 1200 !important;
+    margin-top: 2px !important;
+}
+
+/* Ensure dropdown items display properly */
+.dropdown-item {
+    padding: 8px 16px;
+    white-space: normal; /* Allow wrapping */
+    word-break: break-word;
+}
+
+/* Enhanced dropdown wrapper and container styling */
+.dropdown-wrapper {
+    position: relative !important;
+    display: inline-flex !important;
+    flex-wrap: wrap;
+    margin-bottom: 8px; /* Add margin below buttons */
+}
+
+.dropdown-container {
+    position: relative !important;
+    display: inline-block;
+    vertical-align: middle !important;
+}
+
+.btn-group {
+    position: relative !important;
+    display: inline-flex !important;
+    flex-wrap: wrap;
+    margin-bottom: 5px;
+}
+
+/* Ensure there's space for the dropdown */
+.dropdown-toggle::after {
+    display: inline-block;
+    margin-left: 0.255em;
+    vertical-align: 0.255em;
+    content: "";
+    border-top: 0.3em solid;
+    border-right: 0.3em solid transparent;
+    border-bottom: 0;
+    border-left: 0.3em solid transparent;
+}
+
+/* Right-align dropdowns to prevent overflow */
+.dropdown-menu-end {
+    right: 0 !important;
+    left: auto !important;
+}
+
+/* Adjustments for different screen sizes */
+@media (max-width: 1200px) {
+    /* Ensure dropdowns stay within screen */
+    .dropdown-menu {
+        max-width: 220px;
+    }
+}
+
+@media (max-width: 992px) {
+    .container-fluid {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    /* Ensure dropdowns are more compact */
+    .dropdown-menu {
+        max-width: 200px;
+    }
+}
+
+@media (max-width: 768px) {
+    /* For tablets */
+    .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    /* Ensure table scrolls horizontally on smaller screens */
+    .table-responsive {
+        overflow-x: auto;
+    }
+    
+    /* Make file rows taller for touch screens */
+    .file-row {
+        height: 70px;
+    }
+    
+    /* Stack buttons vertically */
+    .dropdown-cell .btn-group {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+    
+    /* Full width buttons on mobile */
+    .dropdown-cell .btn {
+        width: 100%;
+        margin-right: 0;
+        text-align: left;
+        border-radius: 4px !important;
+    }
+    
+    /* Position dropdowns for mobile */
+    .dropdown-menu {
+        position: fixed !important;
+        left: 10px !important;
+        right: 10px !important;
+        width: calc(100% - 20px) !important;
+        max-width: none !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .container-fluid {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+    
+    .btn-group .btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.75rem;
+    }
+    
+    /* Prevent menu items from being too wide */
+    .dropdown-menu {
+        max-width: 180px;
+        font-size: 0.875rem;
+    }
+    
+    /* Stack buttons vertically on very small screens */
+    .dropdown-cell .btn-group {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        margin-bottom: 5px;
+    }
+    
+    .dropdown-cell .btn-group .btn {
+        margin-bottom: 2px;
+        border-radius: 4px !important;
+    }
+}
+
+.table th, .table td {
+    vertical-align: middle;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}

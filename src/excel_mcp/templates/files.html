@@ -1,0 +1,1003 @@
+{% extends "base.html" %}
+
+{% block title %}Excel MCP Server - Files{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Excel Files</h1>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+        Upload New File
+    </button>
+</div>
+
+{% if message %}
+<div class="alert alert-{{ message_type }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<div class="card shadow-sm overflow-visible">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0">Available Files</h5>
+    </div>
+    <div class="card-body position-relative overflow-visible">
+        {% if files %}
+        <div class="files-container overflow-auto position-relative">
+            <div class="table-responsive overflow-visible">
+                <table class="table table-hover table-files position-relative">
+                    <thead>
+                        <tr>
+                            <th style="width: 40%">File Name</th>
+                            <th style="width: 15%">Size</th>
+                            <th style="width: 20%">Last Modified</th>
+                            <th style="width: 25%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fileTableBody">
+                        {% for file in files %}
+                        <tr class="file-row">
+                            <td>{{ file.name }}</td>
+                            <td>{{ file.size_formatted }}</td>
+                            <td>{{ file.modified }}</td>
+                            <td class="dropdown-cell">
+                                <div class="dropdown-wrapper d-flex flex-wrap" style="min-height: 38px">
+                                    <a href="/download/{{ file.name }}" class="btn btn-sm btn-outline-primary me-1 mb-1">Download</a>
+                                    <button type="button" class="btn btn-sm btn-outline-info me-1 mb-1"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#infoModal"
+                                            data-filename="{{ file.name }}">Info</button>
+                                    <div class="dropdown dropdown-container me-1 mb-1">
+                                        <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle w-100" data-bs-toggle="dropdown" aria-expanded="false">
+                                            CSV
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#csvImportModal" data-filename="{{ file.name }}">Import CSV</a></li>
+                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#csvExportModal" data-filename="{{ file.name }}">Export to CSV</a></li>
+                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCsvImportModal" data-filename="{{ file.name }}">Bulk CSV Import</a></li>
+                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkCsvExportModal" data-filename="{{ file.name }}">Bulk CSV Export</a></li>
+                                        </ul>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-danger delete-btn me-1 mb-1" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#deleteModal" 
+                                            data-filename="{{ file.name }}">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center p-4">
+            <p>No Excel files found. Upload a file to get started.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Excel Files</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+                    <div class="mb-3">
+                        <label for="excelFile" class="form-label">Select Excel Files</label>
+                        <input class="form-control" type="file" id="excelFile" name="files" accept=".xlsx,.xls" multiple>
+                        <div class="form-text">Only .xlsx and .xls files are supported. You can select multiple files.</div>
+                    </div>
+                </form>
+                <div class="progress d-none" id="uploadProgress">
+                    <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
+                <div id="uploadStatus" class="mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="uploadBtn">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <span id="deleteFilename"></span>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="#" id="confirmDelete" class="btn btn-danger">Delete</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- File Info Modal -->
+<div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">File Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center" id="infoLoading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading file information...</p>
+                </div>
+                <div id="infoContent" class="d-none">
+                    <h6 class="border-bottom pb-2 mb-3">General Information</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">File Name:</div>
+                        <div class="col-md-9" id="info-filename"></div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Size:</div>
+                        <div class="col-md-9" id="info-size"></div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Last Modified:</div>
+                        <div class="col-md-9" id="info-modified"></div>
+                    </div>
+                    
+                    <h6 class="border-bottom pb-2 mb-3 mt-4">Excel Details</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Sheets:</div>
+                        <div class="col-md-9" id="info-sheets"></div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Active Sheet:</div>
+                        <div class="col-md-9" id="info-active-sheet"></div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Properties:</div>
+                        <div class="col-md-9" id="info-properties"></div>
+                    </div>
+                </div>
+                <div class="alert alert-danger d-none" id="infoError">
+                    Failed to load file information. Please try again.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSV Import Modal -->
+<div class="modal fade" id="csvImportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import CSV to Excel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="csvImportForm">
+                    <input type="hidden" id="csvImportFilename">
+                    <div class="mb-3">
+                        <label for="csvFile" class="form-label">Select CSV File</label>
+                        <input class="form-control" type="file" id="csvFile" accept=".csv">
+                    </div>
+                    <div class="mb-3">
+                        <label for="csvSheet" class="form-label">Sheet Name</label>
+                        <input type="text" class="form-control" id="csvSheet" placeholder="Leave blank for active sheet">
+                    </div>
+                    <div class="mb-3">
+                        <label for="csvDelimiter" class="form-label">Delimiter</label>
+                        <input type="text" class="form-control" id="csvDelimiter" value="," maxlength="1">
+                    </div>
+                    <div class="mb-3">
+                        <label for="csvMergeMode" class="form-label">Merge Mode</label>
+                        <select class="form-select" id="csvMergeMode">
+                            <option value="replace">Replace (overwrite existing data)</option>
+                            <option value="append">Append (add to existing data)</option>
+                            <option value="new_sheet">New Sheet (create with unique name)</option>
+                        </select>
+                    </div>
+                </form>
+                <div id="csvImportMessage" class="alert d-none my-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="csvImportButton">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSV Export Modal -->
+<div class="modal fade" id="csvExportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Export Excel to CSV</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="csvExportForm">
+                    <input type="hidden" id="csvExportFilename">
+                    <div class="mb-3">
+                        <label for="exportSheet" class="form-label">Sheet Name</label>
+                        <input type="text" class="form-control" id="exportSheet" placeholder="Leave blank for active sheet">
+                    </div>
+                    <div class="mb-3">
+                        <label for="exportDelimiter" class="form-label">Delimiter</label>
+                        <input type="text" class="form-control" id="exportDelimiter" value="," maxlength="1">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="exportHeader" checked>
+                        <label class="form-check-label" for="exportHeader">
+                            Include Header Row
+                        </label>
+                    </div>
+                </form>
+                <div id="csvExportMessage" class="alert d-none my-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="csvExportButton">Export</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk CSV Import Modal -->
+<div class="modal fade" id="bulkCsvImportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk CSV Import</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="bulkCsvImportFilename">
+                <p>Import multiple CSV files into different worksheets of the same Excel file.</p>
+                
+                <div class="csv-import-list">
+                    <div class="csv-import-item card mb-3">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">CSV File</label>
+                                    <input type="file" class="form-control csv-file" accept=".csv">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Sheet Name</label>
+                                    <input type="text" class="form-control csv-sheet" placeholder="Sheet name">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Delimiter</label>
+                                    <input type="text" class="form-control csv-delimiter" value="," maxlength="1">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Merge Mode</label>
+                                    <select class="form-select csv-merge-mode">
+                                        <option value="replace">Replace</option>
+                                        <option value="append">Append</option>
+                                        <option value="new_sheet">New Sheet</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <button type="button" class="btn btn-outline-secondary" id="addCsvImportBtn">
+                        <i class="bi bi-plus-circle"></i> Add Another CSV
+                    </button>
+                </div>
+                
+                <div id="bulkCsvImportMessage" class="alert d-none my-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="bulkCsvImportButton">Import All</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk CSV Export Modal -->
+<div class="modal fade" id="bulkCsvExportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk CSV Export</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="bulkCsvExportFilename">
+                <p>Export multiple worksheets to CSV files.</p>
+                
+                <div class="mb-3">
+                    <button id="getWorksheets" class="btn btn-outline-info">Get Worksheets</button>
+                    <div id="worksheetsLoading" class="spinner-border text-primary d-none" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                
+                <div class="worksheet-export-list">
+                    <!-- Worksheets will be loaded here -->
+                </div>
+                
+                <div id="bulkCsvExportMessage" class="alert d-none my-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="bulkCsvExportButton">Export Selected</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Setup delete confirmation dialog
+        const deleteModal = document.getElementById('deleteModal');
+        if (deleteModal) {
+            deleteModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const filename = button.getAttribute('data-filename');
+                document.getElementById('deleteFilename').textContent = filename;
+                document.getElementById('confirmDelete').href = `/delete/${filename}`;
+            });
+        }
+        
+        // Setup Info modal
+        const infoModal = document.getElementById('infoModal');
+        if (infoModal) {
+            infoModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const filename = button.getAttribute('data-filename');
+                
+                // Show loading spinner and hide content/error
+                document.getElementById('infoLoading').classList.remove('d-none');
+                document.getElementById('infoContent').classList.add('d-none');
+                document.getElementById('infoError').classList.add('d-none');
+                
+                // Fetch file information
+                fetch(`/api/info/${encodeURIComponent(filename)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Hide loading spinner and show content
+                        document.getElementById('infoLoading').classList.add('d-none');
+                        document.getElementById('infoContent').classList.remove('d-none');
+                        
+                        // Populate file information
+                        document.getElementById('info-filename').textContent = data.name;
+                        document.getElementById('info-size').textContent = data.size_formatted;
+                        document.getElementById('info-modified').textContent = data.modified;
+                        
+                        // Excel-specific details
+                        document.getElementById('info-sheets').textContent = data.sheets.join(', ');
+                        document.getElementById('info-active-sheet').textContent = data.active_sheet || 'None';
+                        
+                        // Properties
+                        const propertiesElement = document.getElementById('info-properties');
+                        if (Object.keys(data.properties).length > 0) {
+                            const propList = document.createElement('ul');
+                            propList.className = 'list-unstyled mb-0';
+                            
+                            for (const [key, value] of Object.entries(data.properties)) {
+                                const item = document.createElement('li');
+                                item.innerHTML = `<strong>${key}:</strong> ${value || 'N/A'}`;
+                                propList.appendChild(item);
+                            }
+                            
+                            propertiesElement.innerHTML = '';
+                            propertiesElement.appendChild(propList);
+                        } else {
+                            propertiesElement.textContent = 'No properties found';
+                        }
+                    })
+                    .catch(error => {
+                        // Hide loading spinner and show error
+                        document.getElementById('infoLoading').classList.add('d-none');
+                        document.getElementById('infoError').classList.remove('d-none');
+                        document.getElementById('infoError').textContent = `Failed to load file information: ${error.message}`;
+                    });
+            });
+        }
+
+        // Setup file upload with progress indicator
+        const uploadBtn = document.getElementById('uploadBtn');
+        const uploadForm = document.getElementById('uploadForm');
+        const progressBar = document.querySelector('#uploadProgress .progress-bar');
+        const progressContainer = document.getElementById('uploadProgress');
+          if (uploadBtn && uploadForm) {
+            uploadBtn.addEventListener('click', function() {
+                const fileInput = document.getElementById('excelFile');
+                if (fileInput.files.length === 0) {
+                    alert('Please select one or more files to upload.');
+                    return;
+                }
+                
+                const formData = new FormData(uploadForm);
+                const xhr = new XMLHttpRequest();
+                
+                xhr.open('POST', '/upload', true);
+                
+                xhr.upload.onprogress = function(e) {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        progressContainer.classList.remove('d-none');
+                        progressBar.style.width = percentComplete + '%';
+                        progressBar.textContent = Math.round(percentComplete) + '%';
+                    }
+                };
+                
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            
+                            // Check if this is a multi-file upload response
+                            if (response.hasOwnProperty('total') && response.hasOwnProperty('results')) {
+                                // Show upload status
+                                const statusEl = document.getElementById('uploadStatus');
+                                statusEl.innerHTML = `
+                                    <div class="alert alert-${response.success ? 'success' : 'warning'}">
+                                        <h5>Upload Complete</h5>
+                                        <p>Successfully uploaded ${response.successful} of ${response.total} files.</p>
+                                    </div>`;
+                                
+                                // Show details if there were failures
+                                if (response.failed > 0) {
+                                    const failureList = document.createElement('ul');
+                                    failureList.className = 'list-group mt-3';
+                                    
+                                    response.results.forEach(result => {
+                                        if (!result.success) {
+                                            const item = document.createElement('li');
+                                            item.className = 'list-group-item list-group-item-danger';
+                                            item.textContent = `${result.filename}: ${result.error}`;
+                                            failureList.appendChild(item);
+                                        }
+                                    });
+                                    
+                                    statusEl.appendChild(failureList);
+                                }
+                                
+                                // Add a refresh button
+                                const refreshBtn = document.createElement('button');
+                                refreshBtn.className = 'btn btn-primary mt-3';
+                                refreshBtn.textContent = 'Refresh File List';
+                                refreshBtn.onclick = function() { window.location.href = '/files'; };
+                                statusEl.appendChild(refreshBtn);
+                                
+                                // Hide progress bar
+                                progressContainer.classList.add('d-none');
+                            } else {
+                                // For single file upload or backward compatibility
+                                window.location.href = '/files';
+                            }
+                        } catch (e) {
+                            // If response is not valid JSON, just redirect
+                            window.location.href = '/files';
+                        }
+                    } else {
+                        alert('Upload failed. Please try again.');
+                        progressContainer.classList.add('d-none');
+                    }
+                };
+                
+                xhr.send(formData);
+            });
+        }
+        
+        // CSV Import Modal
+        const csvImportModal = document.getElementById('csvImportModal');
+        if (csvImportModal) {
+            csvImportModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const filename = button.getAttribute('data-filename');
+                document.getElementById('csvImportFilename').value = filename;
+                
+                // Reset form and message
+                document.getElementById('csvImportForm').reset();
+                const messageEl = document.getElementById('csvImportMessage');
+                messageEl.classList.add('d-none');
+                messageEl.classList.remove('alert-success', 'alert-danger');
+            });
+            
+            // CSV Import Button
+            document.getElementById('csvImportButton').addEventListener('click', function() {
+                const filename = document.getElementById('csvImportFilename').value;
+                const fileInput = document.getElementById('csvFile');
+                const sheetName = document.getElementById('csvSheet').value;
+                const delimiter = document.getElementById('csvDelimiter').value || ',';
+                const mergeMode = document.getElementById('csvMergeMode').value;
+                const messageEl = document.getElementById('csvImportMessage');
+                
+                // Validate input
+                if (!fileInput.files.length) {
+                    showMessage(messageEl, 'Please select a CSV file.', 'danger');
+                    return;
+                }
+                
+                // Read the CSV file as base64
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Get base64 content (remove data URL prefix)
+                    const base64Content = e.target.result.split(',')[1];
+                    
+                    // Call the API
+                    fetch(`/api/csv/import/${encodeURIComponent(filename)}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            csv_content_base64: base64Content,
+                            sheet_name: sheetName || null,
+                            delimiter: delimiter,
+                            merge_mode: mergeMode
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showMessage(messageEl, `Success: ${data.message}`, 'success');
+                            // Reset file input
+                            fileInput.value = '';
+                        } else {
+                            showMessage(messageEl, `Error: ${data.message}`, 'danger');
+                        }
+                    })
+                    .catch(error => {
+                        showMessage(messageEl, `Error: ${error.message}`, 'danger');
+                    });
+                };
+                
+                reader.readAsDataURL(fileInput.files[0]);
+            });
+        }
+        
+        // CSV Export Modal
+        const csvExportModal = document.getElementById('csvExportModal');
+        if (csvExportModal) {
+            csvExportModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const filename = button.getAttribute('data-filename');
+                document.getElementById('csvExportFilename').value = filename;
+                
+                // Reset form and message
+                document.getElementById('csvExportForm').reset();
+                const messageEl = document.getElementById('csvExportMessage');
+                messageEl.classList.add('d-none');
+                messageEl.classList.remove('alert-success', 'alert-danger');
+            });
+            
+            // CSV Export Button
+            document.getElementById('csvExportButton').addEventListener('click', function() {
+                const filename = document.getElementById('csvExportFilename').value;
+                const sheetName = document.getElementById('exportSheet').value;
+                const delimiter = document.getElementById('exportDelimiter').value || ',';
+                const includeHeader = document.getElementById('exportHeader').checked;
+                const messageEl = document.getElementById('csvExportMessage');
+                
+                // Call the API
+                fetch(`/api/csv/export/${encodeURIComponent(filename)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sheet_name: sheetName || null,
+                        delimiter: delimiter,
+                        include_header_row: includeHeader
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Create download link
+                        const csvContent = data.csv_content_base64;
+                        const sheetNameDisplay = data.sheet_name || 'worksheet';
+                        const downloadName = `${filename.replace('.xlsx', '')}_${sheetNameDisplay}.csv`;
+                        
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = `data:text/csv;base64,${csvContent}`;
+                        downloadLink.download = downloadName;
+                        downloadLink.classList.add('btn', 'btn-success', 'mt-3');
+                        downloadLink.innerHTML = `<i class="bi bi-download"></i> Download ${downloadName}`;
+                        
+                        showMessage(messageEl, `Success: ${data.message}`, 'success');
+                        messageEl.appendChild(document.createElement('br'));
+                        messageEl.appendChild(downloadLink);
+                    } else {
+                        showMessage(messageEl, `Error: ${data.message}`, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showMessage(messageEl, `Error: ${error.message}`, 'danger');
+                });
+            });
+        }
+        
+        // Bulk CSV Import Modal
+        const bulkCsvImportModal = document.getElementById('bulkCsvImportModal');
+        if (bulkCsvImportModal) {
+            bulkCsvImportModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const filename = button.getAttribute('data-filename');
+                document.getElementById('bulkCsvImportFilename').value = filename;
+                
+                // Reset to single CSV import item
+                const importList = document.querySelector('.csv-import-list');
+                const template = importList.querySelector('.csv-import-item').cloneNode(true);
+                importList.innerHTML = '';
+                importList.appendChild(template);
+                
+                // Reset message
+                const messageEl = document.getElementById('bulkCsvImportMessage');
+                messageEl.classList.add('d-none');
+                messageEl.classList.remove('alert-success', 'alert-danger');
+            });
+            
+            // Add CSV Import Button
+            document.getElementById('addCsvImportBtn').addEventListener('click', function() {
+                const importList = document.querySelector('.csv-import-list');
+                const template = importList.querySelector('.csv-import-item').cloneNode(true);
+                
+                // Reset form values
+                template.querySelector('.csv-file').value = '';
+                template.querySelector('.csv-sheet').value = '';
+                template.querySelector('.csv-delimiter').value = ',';
+                template.querySelector('.csv-merge-mode').value = 'replace';
+                
+                // Add remove button if it's not the first item
+                if (importList.querySelectorAll('.csv-import-item').length > 0) {
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'btn btn-sm btn-outline-danger remove-csv-item';
+                    removeBtn.innerHTML = '<i class="bi bi-trash"></i> Remove';
+                    removeBtn.style.position = 'absolute';
+                    removeBtn.style.top = '10px';
+                    removeBtn.style.right = '10px';
+                    
+                    removeBtn.addEventListener('click', function() {
+                        importList.removeChild(template);
+                    });
+                    
+                    template.querySelector('.card-body').style.position = 'relative';
+                    template.querySelector('.card-body').appendChild(removeBtn);
+                }
+                
+                importList.appendChild(template);
+            });
+            
+            // Bulk CSV Import Button
+            document.getElementById('bulkCsvImportButton').addEventListener('click', function() {
+                const filename = document.getElementById('bulkCsvImportFilename').value;
+                const messageEl = document.getElementById('bulkCsvImportMessage');
+                const importItems = document.querySelectorAll('.csv-import-item');
+                
+                // Validate that at least one item has a file
+                let validItems = 0;
+                for (const item of importItems) {
+                    if (item.querySelector('.csv-file').files.length) {
+                        validItems++;
+                    }
+                }
+                
+                if (validItems === 0) {
+                    showMessage(messageEl, 'Please select at least one CSV file.', 'danger');
+                    return;
+                }
+                
+                // Prepare bulk import data
+                const csvDataPromises = [];
+                
+                for (const item of importItems) {
+                    const fileInput = item.querySelector('.csv-file');
+                    
+                    if (fileInput.files.length) {
+                        const sheetName = item.querySelector('.csv-sheet').value;
+                        const delimiter = item.querySelector('.csv-delimiter').value || ',';
+                        const mergeMode = item.querySelector('.csv-merge-mode').value;
+                        
+                        // Read the CSV file as base64
+                        csvDataPromises.push(new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                // Get base64 content (remove data URL prefix)
+                                const base64Content = e.target.result.split(',')[1];
+                                
+                                resolve({
+                                    csv_content_base64: base64Content,
+                                    sheet_name: sheetName || null,
+                                    delimiter: delimiter,
+                                    merge_mode: mergeMode
+                                });
+                            };
+                            
+                            reader.onerror = reject;
+                            reader.readAsDataURL(fileInput.files[0]);
+                        }));
+                    }
+                }
+                
+                // Process all files
+                Promise.all(csvDataPromises)
+                    .then(csvDataList => {
+                        // Call the bulk import API
+                        return fetch(`/api/csv/bulk-import/${encodeURIComponent(filename)}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                csv_data_list: csvDataList,
+                                create_if_missing: true
+                            })
+                        });
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Create result summary
+                            const resultList = document.createElement('ul');
+                            resultList.className = 'list-group mt-3';
+                            
+                            for (const result of data.results) {
+                                const listItem = document.createElement('li');
+                                listItem.className = `list-group-item ${result.success ? 'list-group-item-success' : 'list-group-item-danger'}`;
+                                listItem.textContent = result.message;
+                                resultList.appendChild(listItem);
+                            }
+                            
+                            showMessage(messageEl, `Bulk import completed: ${data.message}`, 'success');
+                            messageEl.appendChild(resultList);
+                        } else {
+                            showMessage(messageEl, `Error: ${data.message}`, 'danger');
+                        }
+                    })
+                    .catch(error => {
+                        showMessage(messageEl, `Error: ${error.message}`, 'danger');
+                    });
+            });
+        }
+        
+        // Bulk CSV Export Modal
+        const bulkCsvExportModal = document.getElementById('bulkCsvExportModal');
+        if (bulkCsvExportModal) {
+            bulkCsvExportModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const filename = button.getAttribute('data-filename');
+                document.getElementById('bulkCsvExportFilename').value = filename;
+                
+                // Clear worksheet list
+                document.querySelector('.worksheet-export-list').innerHTML = '';
+                
+                // Reset message
+                const messageEl = document.getElementById('bulkCsvExportMessage');
+                messageEl.classList.add('d-none');
+                messageEl.classList.remove('alert-success', 'alert-danger');
+            });
+            
+            // Get Worksheets Button
+            document.getElementById('getWorksheets').addEventListener('click', function() {
+                const filename = document.getElementById('bulkCsvExportFilename').value;
+                const worksheetsList = document.querySelector('.worksheet-export-list');
+                const loadingSpinner = document.getElementById('worksheetsLoading');
+                const messageEl = document.getElementById('bulkCsvExportMessage');
+                
+                // Show loading spinner
+                loadingSpinner.classList.remove('d-none');
+                worksheetsList.innerHTML = '';
+                messageEl.classList.add('d-none');
+                
+                // Get workbook info
+                fetch(`/api/info/${encodeURIComponent(filename)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Hide spinner
+                        loadingSpinner.classList.add('d-none');
+                        
+                        if (data.sheets && data.sheets.length > 0) {
+                            // Create checkbox for each worksheet
+                            for (const sheet of data.sheets) {
+                                const sheetCard = document.createElement('div');
+                                sheetCard.className = 'worksheet-export-item card mb-3';
+                                
+                                const cardBody = document.createElement('div');
+                                cardBody.className = 'card-body';
+                                
+                                const row = document.createElement('div');
+                                row.className = 'row align-items-center';
+                                
+                                // Checkbox column
+                                const checkboxCol = document.createElement('div');
+                                checkboxCol.className = 'col-md-1';
+                                
+                                const checkboxDiv = document.createElement('div');
+                                checkboxDiv.className = 'form-check';
+                                
+                                const checkbox = document.createElement('input');
+                                checkbox.type = 'checkbox';
+                                checkbox.className = 'form-check-input sheet-checkbox';
+                                checkbox.value = sheet.name;
+                                checkbox.checked = true;
+                                checkbox.id = `sheet-${sheet.name}`;
+                                
+                                checkboxDiv.appendChild(checkbox);
+                                checkboxCol.appendChild(checkboxDiv);
+                                
+                                // Sheet info column
+                                const infoCol = document.createElement('div');
+                                infoCol.className = 'col-md-5';
+                                
+                                const sheetLabel = document.createElement('label');
+                                sheetLabel.className = 'form-check-label';
+                                sheetLabel.htmlFor = `sheet-${sheet.name}`;
+                                sheetLabel.textContent = `${sheet.name} (${sheet.visible ? 'Visible' : 'Hidden'})`;
+                                
+                                infoCol.appendChild(sheetLabel);
+                                
+                                // Delimiter column
+                                const delimiterCol = document.createElement('div');
+                                delimiterCol.className = 'col-md-3';
+                                
+                                const delimiterInput = document.createElement('input');
+                                delimiterInput.type = 'text';
+                                delimiterInput.className = 'form-control form-control-sm sheet-delimiter';
+                                delimiterInput.value = ',';
+                                delimiterInput.maxLength = 1;
+                                delimiterInput.placeholder = 'Delimiter';
+                                
+                                delimiterCol.appendChild(delimiterInput);
+                                
+                                // Header checkbox column
+                                const headerCol = document.createElement('div');
+                                headerCol.className = 'col-md-3';
+                                
+                                const headerDiv = document.createElement('div');
+                                headerDiv.className = 'form-check';
+                                
+                                const headerCheckbox = document.createElement('input');
+                                headerCheckbox.type = 'checkbox';
+                                headerCheckbox.className = 'form-check-input sheet-header';
+                                headerCheckbox.checked = true;
+                                headerCheckbox.id = `header-${sheet.name}`;
+                                
+                                const headerLabel = document.createElement('label');
+                                headerLabel.className = 'form-check-label';
+                                headerLabel.htmlFor = `header-${sheet.name}`;
+                                headerLabel.textContent = 'Include Header';
+                                
+                                headerDiv.appendChild(headerCheckbox);
+                                headerDiv.appendChild(headerLabel);
+                                headerCol.appendChild(headerDiv);
+                                
+                                // Add columns to row
+                                row.appendChild(checkboxCol);
+                                row.appendChild(infoCol);
+                                row.appendChild(delimiterCol);
+                                row.appendChild(headerCol);
+                                
+                                cardBody.appendChild(row);
+                                sheetCard.appendChild(cardBody);
+                                worksheetsList.appendChild(sheetCard);
+                            }
+                        } else {
+                            showMessage(messageEl, 'No worksheets found in the workbook.', 'warning');
+                        }
+                    })
+                    .catch(error => {
+                        loadingSpinner.classList.add('d-none');
+                        showMessage(messageEl, `Error loading worksheets: ${error.message}`, 'danger');
+                    });
+            });
+            
+            // Bulk CSV Export Button
+            document.getElementById('bulkCsvExportButton').addEventListener('click', function() {
+                const filename = document.getElementById('bulkCsvExportFilename').value;
+                const messageEl = document.getElementById('bulkCsvExportMessage');
+                const worksheetItems = document.querySelectorAll('.worksheet-export-item');
+                
+                // Get selected worksheets
+                const worksheetList = [];
+                let selectedCount = 0;
+                
+                for (const item of worksheetItems) {
+                    const checkbox = item.querySelector('.sheet-checkbox');
+                    
+                    if (checkbox && checkbox.checked) {
+                        selectedCount++;
+                        worksheetList.push({
+                            sheet_name: checkbox.value,
+                            delimiter: item.querySelector('.sheet-delimiter').value || ',',
+                            include_header_row: item.querySelector('.sheet-header').checked
+                        });
+                    }
+                }
+                
+                if (selectedCount === 0) {
+                    showMessage(messageEl, 'Please select at least one worksheet to export.', 'danger');
+                    return;
+                }
+                
+                // Call the bulk export API
+                fetch(`/api/csv/bulk-export/${encodeURIComponent(filename)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        worksheet_list: worksheetList
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Create downloads
+                        const downloadContainer = document.createElement('div');
+                        downloadContainer.className = 'download-links mt-3';
+                        
+                        for (const result of data.results) {
+                            if (result.success) {
+                                const downloadLink = document.createElement('a');
+                                downloadLink.href = `data:text/csv;base64,${result.csv_content_base64}`;
+                                downloadLink.download = `${filename.replace('.xlsx', '')}_${result.sheet_name}.csv`;
+                                downloadLink.className = 'btn btn-sm btn-success m-1';
+                                downloadLink.innerHTML = `<i class="bi bi-download"></i> ${result.sheet_name}.csv`;
+                                downloadContainer.appendChild(downloadLink);
+                            }
+                        }
+                        
+                        const zipNote = document.createElement('p');
+                        zipNote.className = 'text-muted mt-2';
+                        zipNote.textContent = 'Tip: Click each button to download individual CSV files.';
+                        
+                        showMessage(messageEl, `Success: ${data.message}`, 'success');
+                        messageEl.appendChild(downloadContainer);
+                        messageEl.appendChild(zipNote);
+                    } else {
+                        showMessage(messageEl, `Error: ${data.message}`, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showMessage(messageEl, `Error: ${error.message}`, 'danger');
+                });
+            });
+        }
+        
+        // Helper function to show messages
+        function showMessage(element, message, type) {
+            element.textContent = message;
+            element.className = `alert alert-${type}`;
+            element.classList.remove('d-none');
+        }
+    });
+</script>
+{% endblock %}

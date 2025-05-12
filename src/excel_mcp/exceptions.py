@@ -30,6 +30,10 @@ class PivotError(ExcelMCPError):
     """Raised when pivot table operations fail."""
     pass
 
+class FileOperationError(ExcelMCPError):
+    """Raised when file operations (upload, download, list) fail."""
+    pass
+
 class ChartError(ExcelMCPError):
     """Raised when chart operations fail."""
     pass

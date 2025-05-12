@@ -2,6 +2,61 @@
 
 This document provides detailed information about all available tools in the Excel MCP server.
 
+## CSV Operations
+
+### import_csv
+
+Import a CSV file into an Excel workbook.
+
+```python
+import_csv(
+    excel_filename: str,
+    csv_content_base64: str,
+    sheet_name: str = None,
+    delimiter: str = ',',
+    create_if_missing: bool = True,
+    merge_mode: str = 'replace'
+) -> Dict[str, Any]
+```
+
+- `excel_filename`: Name of the Excel file to create or modify
+- `csv_content_base64`: Base64 encoded CSV content
+- `sheet_name`: Name of the worksheet to import into (created if doesn't exist)
+- `delimiter`: CSV delimiter character (default: ',')
+- `create_if_missing`: Whether to create the Excel file if it doesn't exist
+- `merge_mode`: How to handle existing data ('replace', 'append', 'new_sheet')
+- Returns: Dictionary containing:
+  - `success`: Boolean indicating operation success
+  - `message`: Descriptive message about the operation
+  - `rows_imported`: Number of rows imported
+  - `columns_imported`: Number of columns imported
+  - `sheet_name`: Name of the sheet data was imported into
+  - `excel_path`: Path to the Excel file
+
+### export_worksheet_to_csv
+
+Export an Excel worksheet as a CSV file.
+
+```python
+export_worksheet_to_csv(
+    excel_filename: str,
+    sheet_name: str = None,
+    delimiter: str = ',',
+    include_header_row: bool = True
+) -> Dict[str, Any]
+```
+
+- `excel_filename`: Name of the Excel file
+- `sheet_name`: Name of the worksheet to export (uses active sheet if None)
+- `delimiter`: CSV delimiter character (default: ',')
+- `include_header_row`: Whether to treat the first row as headers
+- Returns: Dictionary containing:
+  - `success`: Boolean indicating operation success
+  - `message`: Descriptive message about the operation
+  - `csv_content_base64`: Base64 encoded CSV content
+  - `rows_exported`: Number of rows exported
+  - `sheet_name`: Name of the sheet that was exported
+
 ## Workbook Operations
 
 ### create_workbook
@@ -337,3 +392,67 @@ validate_excel_range(
 - `start_cell`: Starting cell of range
 - `end_cell`: Optional ending cell of range
 - Returns: Validation result message
+
+## File Operations
+
+### list_excel_files
+
+List all Excel files available on the server.
+
+```python
+list_excel_files() -> Dict[str, Any]
+```
+
+- Returns: Dictionary containing:
+  - `success`: Boolean indicating operation success
+  - `files`: List of file information objects with name, path, size, creation and modification dates
+  - `message`: Descriptive message about the operation
+
+### upload_file
+
+Upload an Excel file to the server using base64 encoding.
+
+```python
+upload_file(filename: str, file_content_base64: str) -> Dict[str, Any]
+```
+
+- `filename`: Name of the file to create
+- `file_content_base64`: Base64 encoded file content
+- Returns: Dictionary containing:
+  - `success`: Boolean indicating operation success
+  - `message`: Descriptive message about the operation
+  - `file_path`: Path where the file was saved (if successful)
+  - `size`: File size in bytes (if successful)
+  - `size_formatted`: Human-readable file size (if successful)
+
+### download_file
+
+Download an Excel file from the server as base64 encoded content.
+
+```python
+download_file(filename: str) -> Dict[str, Any]
+```
+
+- `filename`: Name of the file to download
+- Returns: Dictionary containing:
+  - `success`: Boolean indicating operation success
+  - `filename`: Name of the downloaded file (if successful)
+  - `content_base64`: Base64 encoded file content (if successful)
+  - `size`: File size in bytes (if successful)
+  - `size_formatted`: Human-readable file size (if successful)
+  - `modified`: Last modification date (if successful)
+  - `created`: File creation date (if successful)
+  - `message`: Descriptive message about the operation
+
+### delete_excel_file
+
+Delete an Excel file from the server.
+
+```python
+delete_excel_file(filename: str) -> Dict[str, Any]
+```
+
+- `filename`: Name of the file to delete
+- Returns: Dictionary containing:
+  - `success`: Boolean indicating operation success
+  - `message`: Descriptive message about the operation

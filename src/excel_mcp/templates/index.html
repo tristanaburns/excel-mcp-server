@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Excel MCP Server - Home{% endblock %}
+
+{% block content %}
+<div class="jumbotron p-5 bg-light rounded">
+    <h1 class="display-4">Excel MCP Server</h1>
+    <p class="lead">A Model Context Protocol (MCP) server that lets you manipulate Excel files without needing Microsoft Excel installed.</p>
+    <hr class="my-4">
+    <p>Create, read, and modify Excel workbooks with your AI agent or through this web interface.</p>
+    <a href="/files" class="btn btn-primary btn-lg">Manage Excel Files</a>
+    <a href="/docs" class="btn btn-secondary btn-lg">API Documentation</a>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">📊 Excel File Management</h5>
+                <p class="card-text">Upload new Excel files or download existing ones. The files are stored in a persistent volume and accessible via the API.</p>
+                <a href="/files" class="btn btn-primary">Manage Files</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">🔄 API Integration</h5>
+                <p class="card-text">Use the REST API to integrate Excel manipulation capabilities into your applications.</p>
+                <a href="/docs" class="btn btn-primary">View API Docs</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">🤖 MCP Tools</h5>
+                <p class="card-text">Connect with AI assistants to automate Excel operations through Model Context Protocol.</p>
+                <a href="https://github.com/haris-musa/excel-mcp-server" target="_blank" class="btn btn-primary">Learn More</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

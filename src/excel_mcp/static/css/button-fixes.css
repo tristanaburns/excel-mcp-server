@@ -1,0 +1,13 @@
+/* Button consistency fixes */
+
+/* Ensure consistent button sizing */
+.btn-sm.btn-outline-success.dropdown-toggle {
+    width: auto !important; /* Override any inline width */
+    min-width: 70px; /* Match size of other buttons */
+}
+
+/* Make all action buttons consistent size */
+td.dropdown-cell .btn-sm {
+    min-width: 70px;
+    text-align: center;
+}

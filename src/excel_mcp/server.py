@@ -1,7 +1,11 @@
 import logging
 import sys
 import os
-from typing import Any, List, Dict
+import time
+import base64
+from datetime import datetime
+from pathlib import Path
+from typing import Any, List, Dict, Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -14,7 +18,8 @@ from excel_mcp.exceptions import (
     FormattingError,
     CalculationError,
     PivotError,
-    ChartError
+    ChartError,
+    FileOperationError
 )
 
 # Import from excel_mcp package with consistent _impl suffixes
@@ -32,6 +37,12 @@ from excel_mcp.sheet import (
     rename_sheet,
     merge_range,
     unmerge_range,
+)
+from excel_mcp.csv_operations import (
+    import_csv_file_base64,
+    export_worksheet_to_csv_base64,
+    bulk_import_csv_file_base64,
+    bulk_export_worksheets_to_csv_base64
 )
 
 # Configure logging
@@ -491,16 +502,414 @@ def validate_excel_range(
         logger.error(f"Error validating range: {e}")
         raise
 
+@mcp.tool()
+def health_check():
+    """Health check endpoint for the MCP server."""
+    return {"status": "healthy", "timestamp": time.time(), "service": "mcp-server"}
+
+# Helper function for formatting file sizes
+def format_size(size_bytes):
+    """Format file size in a human-readable format."""
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.2f} KB"
+    elif size_bytes < 1024 * 1024 * 1024:
+        return f"{size_bytes / (1024 * 1024):.2f} MB"
+    else:
+        return f"{size_bytes / (1024 * 1024 * 1024):.2f} GB"
+
+@mcp.tool()
+def list_excel_files() -> Dict[str, Any]:
+    """
+    List all Excel files available on the server.
+    Returns information about files including name, size, and modification date.
+    """
+    try:
+        files_path = Path(EXCEL_FILES_PATH)
+        if not files_path.exists():
+            files_path.mkdir(parents=True, exist_ok=True)
+            
+        files_info = []
+        for file_path in files_path.glob("*.xls*"):  # Match both .xls and .xlsx
+            if file_path.is_file():
+                stats = file_path.stat()
+                files_info.append({
+                    "name": file_path.name,
+                    "path": str(file_path),
+                    "size": stats.st_size,
+                    "size_formatted": format_size(stats.st_size),
+                    "modified": datetime.fromtimestamp(stats.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
+                    "created": datetime.fromtimestamp(stats.st_ctime).strftime("%Y-%m-%d %H:%M:%S")
+                })
+        
+        # Sort files alphabetically by name
+        return {
+            "success": True,
+            "files": sorted(files_info, key=lambda x: x["name"]),
+            "message": f"Found {len(files_info)} Excel files"
+        }
+    except Exception as e:
+        logger.error(f"Error listing Excel files: {e}")
+        return {
+            "success": False,
+            "files": [],
+            "message": f"Failed to list files: {str(e)}"
+        }
+
+@mcp.tool()
+def upload_file(filename: str, file_content_base64: str) -> Dict[str, Any]:
+    """
+    Upload an Excel file to the server using base64 encoding.
+    
+    Args:
+        filename: Name of the file to create
+        file_content_base64: Base64 encoded file content
+        
+    Returns:
+        Dictionary with upload status information
+    """
+    if not filename.lower().endswith(('.xlsx', '.xls')):
+        return {
+            "success": False,
+            "message": "Invalid file extension. Only .xlsx and .xls files are supported."
+        }
+    
+    try:
+        # Decode base64 content
+        file_content = base64.b64decode(file_content_base64)
+        
+        # Create target directory if it doesn't exist
+        os.makedirs(EXCEL_FILES_PATH, exist_ok=True)
+        
+        # Save file
+        file_path = Path(EXCEL_FILES_PATH) / filename
+        with open(file_path, "wb") as f:
+            f.write(file_content)
+            
+        file_size = file_path.stat().st_size
+            
+        return {
+            "success": True,
+            "message": f"File {filename} uploaded successfully ({format_size(file_size)})",
+            "file_path": str(file_path),
+            "size": file_size,
+            "size_formatted": format_size(file_size)
+        }
+    except Exception as e:
+        logger.error(f"Error uploading file: {e}")
+        return {
+            "success": False,
+            "message": f"Failed to upload file: {str(e)}"
+        }
+
+@mcp.tool()
+def download_file(filename: str) -> Dict[str, Any]:
+    """
+    Download an Excel file from the server as base64 encoded content.
+    
+    Args:
+        filename: Name of the file to download
+        
+    Returns:
+        Dictionary with file content (base64 encoded) and metadata
+    """
+    try:
+        file_path = Path(EXCEL_FILES_PATH) / filename
+        
+        if not file_path.exists():
+            return {
+                "success": False,
+                "message": f"File {filename} not found"
+            }
+        
+        # Read file content
+        with open(file_path, "rb") as f:
+            file_content = f.read()
+        
+        # Get file stats
+        stats = file_path.stat()
+        
+        return {
+            "success": True,
+            "filename": filename,
+            "content_base64": base64.b64encode(file_content).decode('utf-8'),
+            "size": stats.st_size,
+            "size_formatted": format_size(stats.st_size),
+            "modified": datetime.fromtimestamp(stats.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
+            "created": datetime.fromtimestamp(stats.st_ctime).strftime("%Y-%m-%d %H:%M:%S"),
+            "message": f"Downloaded {filename} ({format_size(stats.st_size)})"
+        }
+    except Exception as e:
+        logger.error(f"Error downloading file: {e}")
+        return {
+            "success": False,
+            "message": f"Failed to download file: {str(e)}"
+        }
+
+@mcp.tool()
+def delete_excel_file(filename: str) -> Dict[str, Any]:
+    """
+    Delete an Excel file from the server.
+    
+    Args:
+        filename: Name of the file to delete
+        
+    Returns:
+        Dictionary with deletion status
+    """
+    try:
+        file_path = Path(EXCEL_FILES_PATH) / filename
+        
+        if not file_path.exists():
+            return {
+                "success": False,
+                "message": f"File {filename} not found"
+            }
+        
+        # Delete the file
+        os.remove(file_path)
+        
+        return {
+            "success": True,
+            "message": f"File {filename} deleted successfully"
+        }
+    except Exception as e:
+        logger.error(f"Error deleting file: {e}")
+        return {
+            "success": False,
+            "message": f"Failed to delete file: {str(e)}"
+        }
+        
+@mcp.tool()
+def import_csv(
+    excel_filename: str,
+    csv_content_base64: str,
+    sheet_name: str = None,
+    delimiter: str = ',',
+    create_if_missing: bool = True,
+    merge_mode: str = 'replace'
+) -> Dict[str, Any]:
+    """
+    Import a CSV file into an Excel workbook.
+    
+    Args:
+        excel_filename: Name of the Excel file to create or modify
+        csv_content_base64: Base64 encoded CSV content
+        sheet_name: Name of the worksheet to import into (created if doesn't exist)
+        delimiter: CSV delimiter character (default: ',')
+        create_if_missing: Whether to create the Excel file if it doesn't exist
+        merge_mode: How to handle existing data ('replace', 'append', 'new_sheet')
+    
+    Returns:
+        Dictionary with information about the import operation
+    """
+    try:
+        excel_path = get_excel_path(excel_filename)
+        
+        # Import the CSV
+        result = import_csv_file_base64(
+            excel_path,
+            csv_content_base64,
+            sheet_name,
+            delimiter,
+            create_if_missing,
+            merge_mode
+        )
+        
+        return {
+            "success": True,
+            "message": result["message"],
+            "rows_imported": result["rows_imported"],
+            "columns_imported": result.get("columns_imported", 0),
+            "sheet_name": result["sheet_name"],
+            "excel_path": result["filepath"]
+        }
+    except FileOperationError as e:
+        logger.error(f"Error importing CSV: {e}")
+        return {
+            "success": False,
+            "message": f"CSV import failed: {str(e)}"
+        }
+    except Exception as e:
+        logger.error(f"Unexpected error importing CSV: {e}")
+        return {
+            "success": False,
+            "message": f"Unexpected error during CSV import: {str(e)}"
+        }
+
+@mcp.tool()
+def export_worksheet_to_csv(
+    excel_filename: str,
+    sheet_name: str = None,
+    delimiter: str = ',',
+    include_header_row: bool = True
+) -> Dict[str, Any]:
+    """
+    Export an Excel worksheet as a CSV file.
+    
+    Args:
+        excel_filename: Name of the Excel file
+        sheet_name: Name of the worksheet to export (uses active sheet if None)
+        delimiter: CSV delimiter character (default: ',')
+        include_header_row: Whether to treat the first row as headers
+    
+    Returns:
+        Dictionary with CSV content and export information
+    """
+    try:
+        excel_path = get_excel_path(excel_filename)
+        
+        # Export the worksheet to CSV
+        result = export_worksheet_to_csv_base64(
+            excel_path,
+            sheet_name,
+            delimiter,
+            include_header_row
+        )
+        
+        return {
+            "success": True,
+            "message": result["message"],
+            "csv_content_base64": result["csv_content_base64"],
+            "rows_exported": result["rows_exported"],
+            "sheet_name": result["sheet_name"]
+        }
+    except FileOperationError as e:
+        logger.error(f"Error exporting to CSV: {e}")
+        return {
+            "success": False,
+            "message": f"CSV export failed: {str(e)}"
+        }
+    except Exception as e:
+        logger.error(f"Unexpected error exporting to CSV: {e}")
+        return {
+            "success": False,
+            "message": f"Unexpected error during CSV export: {str(e)}"
+        }
+
+@mcp.tool()
+def bulk_import_csv(
+    excel_filename: str,
+    csv_data_list: List[Dict[str, Any]],
+    create_if_missing: bool = True
+) -> Dict[str, Any]:
+    """
+    Import multiple CSV files into an Excel workbook.
+    
+    Args:
+        excel_filename: Name of the Excel file to create or modify
+        csv_data_list: List of dictionaries containing CSV information:
+            - csv_content_base64: Base64 encoded content of the CSV file
+            - sheet_name: Name of worksheet to import into (created if doesn't exist)
+            - delimiter: CSV delimiter character (default: ',')
+            - merge_mode: How to handle existing data ('replace', 'append', 'new_sheet')
+        create_if_missing: Whether to create the Excel file if it doesn't exist
+    
+    Returns:
+        Dictionary with information about the bulk import operation
+    """
+    try:
+        excel_path = get_excel_path(excel_filename)
+        
+        # Import the CSV files
+        results = bulk_import_csv_file_base64(
+            excel_path,
+            csv_data_list,
+            create_if_missing
+        )
+        
+        # Count successful imports
+        successful = sum(1 for result in results if result.get("success", False))
+        total = len(results)
+        
+        return {
+            "success": True,
+            "message": f"Processed {total} CSV imports ({successful} successful, {total - successful} failed)",
+            "results": results,
+            "excel_path": str(excel_path)
+        }
+    except FileOperationError as e:
+        logger.error(f"Error in bulk CSV import: {e}")
+        return {
+            "success": False,
+            "message": f"Bulk CSV import failed: {str(e)}"
+        }
+    except Exception as e:
+        logger.error(f"Unexpected error in bulk CSV import: {e}")
+        return {
+            "success": False,
+            "message": f"Unexpected error during bulk CSV import: {str(e)}"
+        }
+
+@mcp.tool()
+def bulk_export_worksheets_to_csv(
+    excel_filename: str,
+    worksheet_list: List[Dict[str, Any]]
+) -> Dict[str, Any]:
+    """
+    Export multiple Excel worksheets as CSV files.
+    
+    Args:
+        excel_filename: Name of the Excel file
+        worksheet_list: List of dictionaries containing worksheet information:
+            - sheet_name: Name of worksheet to export (uses active sheet if None)
+            - delimiter: CSV delimiter character (default: ',')
+            - include_header_row: Whether to treat the first row as headers
+    
+    Returns:
+        Dictionary with CSV content and export information for each worksheet
+    """
+    try:
+        excel_path = get_excel_path(excel_filename)
+        
+        # Export the worksheets to CSV
+        results = bulk_export_worksheets_to_csv_base64(
+            excel_path,
+            worksheet_list
+        )
+        
+        # Count successful exports
+        successful = sum(1 for result in results if result.get("success", False))
+        total = len(results)
+        
+        return {
+            "success": True,
+            "message": f"Processed {total} CSV exports ({successful} successful, {total - successful} failed)",
+            "results": results
+        }
+    except FileOperationError as e:
+        logger.error(f"Error in bulk CSV export: {e}")
+        return {
+            "success": False,
+            "message": f"Bulk CSV export failed: {str(e)}"
+        }
+    except Exception as e:
+        logger.error(f"Unexpected error in bulk CSV export: {e}")
+        return {
+            "success": False,
+            "message": f"Unexpected error during bulk CSV export: {str(e)}"
+        }
+
 async def run_server():
     """Run the Excel MCP server."""
     try:
-        logger.info(f"Starting Excel MCP server (files directory: {EXCEL_FILES_PATH})")
+        # Log server startup info
+        logger.info(f"Starting Excel MCP server on port {os.environ.get('FASTMCP_PORT', '8000')}")
+        logger.info(f"Excel files directory: {EXCEL_FILES_PATH}")
+
+        # Make sure Excel files directory exists with proper permissions
+        os.makedirs(EXCEL_FILES_PATH, exist_ok=True)
+        logger.info(f"Ensuring Excel files directory exists at {EXCEL_FILES_PATH}")
+        
+        # Start the MCP server
         await mcp.run_sse_async()
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
         await mcp.shutdown()
     except Exception as e:
         logger.error(f"Server failed: {e}")
+        logger.exception("Exception details:")
         raise
     finally:
-        logger.info("Server shutdown complete") 
+        logger.info("Server shutdown complete")
